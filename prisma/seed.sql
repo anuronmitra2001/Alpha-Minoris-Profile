@@ -45,7 +45,7 @@ insert into 'Customer' (
     'Apartment, House', 
     'Long-term rental income',
     'Within 6 months', 
-    7000, 
+    3000, 
     CURRENT_TIMESTAMP, 
     CURRENT_TIMESTAMP);
     
@@ -71,7 +71,7 @@ insert into 'Customer' (
     'Employed',
     'Hamburg',
     'Studio-Apartment',
-    1500,
+    600,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP);
 
