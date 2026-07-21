@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum DocumentStatus {
+  MISSING
+  REQUESTED
+  RECEIVED
+  REVIEWED
+}
+
+model Customer {
+  ID                     Int            @id @default(autoincrement())
+  FullName               String
+  CoApplicantFullName    String?
+  Email                  String?
+  Phone                  String?
+  HouseHoldSize          Int?
+  PreferredLanguage      String?
+  EmploymentStatus       String?
+  EmployerName           String?
+  ContractType           String?
+  AvailableCapital       Int?
+  AvailableAssetsWorth   Int?
+  PreferredLocations     String?
+  PreferredPropertyTypes String?
+  InvestmentGoal         String?
+  Timeline               String?
+  MaxNegativeCashFlow    Int?
+  IncomeSources          IncomeSource[]
+  ExpenseItems           ExpenseItem[]
+  Documents              DocumentItem[]
+  CreatedAt              DateTime       @default(now())
+  UpdatedAt              DateTime       @updatedAt
+}
+
+model IncomeSource {
+  ID            Int      @id @default(autoincrement())
+  Label         String
+  MonthlyIncome Int
+  CustomerID    Int
+  Customer      Customer @relation(fields: [CustomerID], references: [ID], onDelete: Cascade)
+}
+
+model ExpenseItem {
+  ID            Int      @id @default(autoincrement())
+  Label         String
+  MonthlyExpend Int
+  IsLoanPayment Boolean  @default(false)
+  CustomerID    Int
+  Customer      Customer @relation(fields: [CustomerID], references: [ID], onDelete: Cascade)
+}
+
+model DocumentItem {
+  ID         Int            @id @default(autoincrement())
+  Type       String
+  Status     DocumentStatus @default(MISSING)
+  CustomerID Int
+  Customer   Customer       @relation(fields: [CustomerID], references: [ID], onDelete: Cascade)
+}
