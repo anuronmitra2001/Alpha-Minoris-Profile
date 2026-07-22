@@ -77,6 +77,8 @@ export default async function EditCustomerPage({
       ID: customerID,
     },
     include: {
+      IncomeSources: true,
+      ExpenseItems: true,
       Documents: true,
     },
   });
@@ -157,6 +159,216 @@ export default async function EditCustomerPage({
     revalidatePath(`/customers/${customerID}/edit`);
 
     redirect(`/customers/${customerID}`);
+  }
+
+  async function addIncomeSource(formData: FormData) {
+    "use server";
+
+    const label = optionalText(formData, "Label");
+    const monthlyIncome = optionalInteger(
+      formData,
+      "MonthlyIncome"
+    );
+
+    if (
+      label === null ||
+      monthlyIncome === null ||
+      monthlyIncome < 0
+    ) {
+      throw new Error(
+        "Enter a valid income label and a non-negative whole-number amount."
+      );
+    }
+
+    await prisma.incomeSource.create({
+      data: {
+        Label: label,
+        MonthlyIncome: monthlyIncome,
+        CustomerID: customerID,
+      },
+    });
+
+    revalidatePath("/");
+    revalidatePath(`/customers/${customerID}`);
+    revalidatePath(`/customers/${customerID}/edit`);
+
+    redirect(`/customers/${customerID}/edit`);
+  }
+
+  async function updateIncomeSource(formData: FormData) {
+    "use server";
+
+    const incomeID = Number(formData.get("IncomeID"));
+    const label = optionalText(formData, "Label");
+    const monthlyIncome = optionalInteger(
+      formData,
+      "MonthlyIncome"
+    );
+
+    if (
+      !Number.isInteger(incomeID) ||
+      label === null ||
+      monthlyIncome === null ||
+      monthlyIncome < 0
+    ) {
+      throw new Error("Invalid income update.");
+    }
+
+    const result = await prisma.incomeSource.updateMany({
+      where: {
+        ID: incomeID,
+        CustomerID: customerID,
+      },
+      data: {
+        Label: label,
+        MonthlyIncome: monthlyIncome,
+      },
+    });
+
+    if (result.count === 0) {
+      throw new Error("Income source was not found.");
+    }
+
+    revalidatePath("/");
+    revalidatePath(`/customers/${customerID}`);
+    revalidatePath(`/customers/${customerID}/edit`);
+
+    redirect(`/customers/${customerID}/edit`);
+  }
+
+  async function deleteIncomeSource(formData: FormData) {
+    "use server";
+
+    const incomeID = Number(formData.get("IncomeID"));
+
+    if (!Number.isInteger(incomeID)) {
+      throw new Error("Invalid income source.");
+    }
+
+    const result = await prisma.incomeSource.deleteMany({
+      where: {
+        ID: incomeID,
+        CustomerID: customerID,
+      },
+    });
+
+    if (result.count === 0) {
+      throw new Error("Income source was not found.");
+    }
+
+    revalidatePath("/");
+    revalidatePath(`/customers/${customerID}`);
+    revalidatePath(`/customers/${customerID}/edit`);
+
+    redirect(`/customers/${customerID}/edit`);
+  }
+
+  async function addExpenseItem(formData: FormData) {
+    "use server";
+
+    const label = optionalText(formData, "Label");
+    const monthlyExpend = optionalInteger(
+      formData,
+      "MonthlyExpend"
+    );
+    const isLoanPayment =
+      formData.get("IsLoanPayment") === "on";
+
+    if (
+      label === null ||
+      monthlyExpend === null ||
+      monthlyExpend < 0
+    ) {
+      throw new Error(
+        "Enter a valid expense label and a non-negative whole-number amount."
+      );
+    }
+
+    await prisma.expenseItem.create({
+      data: {
+        Label: label,
+        MonthlyExpend: monthlyExpend,
+        IsLoanPayment: isLoanPayment,
+        CustomerID: customerID,
+      },
+    });
+
+    revalidatePath("/");
+    revalidatePath(`/customers/${customerID}`);
+    revalidatePath(`/customers/${customerID}/edit`);
+
+    redirect(`/customers/${customerID}/edit`);
+  }
+
+  async function updateExpenseItem(formData: FormData) {
+    "use server";
+
+    const expenseID = Number(formData.get("ExpenseID"));
+    const label = optionalText(formData, "Label");
+    const monthlyExpend = optionalInteger(
+      formData,
+      "MonthlyExpend"
+    );
+    const isLoanPayment =
+      formData.get("IsLoanPayment") === "on";
+
+    if (
+      !Number.isInteger(expenseID) ||
+      label === null ||
+      monthlyExpend === null ||
+      monthlyExpend < 0
+    ) {
+      throw new Error("Invalid expense update.");
+    }
+
+    const result = await prisma.expenseItem.updateMany({
+      where: {
+        ID: expenseID,
+        CustomerID: customerID,
+      },
+      data: {
+        Label: label,
+        MonthlyExpend: monthlyExpend,
+        IsLoanPayment: isLoanPayment,
+      },
+    });
+
+    if (result.count === 0) {
+      throw new Error("Expense item was not found.");
+    }
+
+    revalidatePath("/");
+    revalidatePath(`/customers/${customerID}`);
+    revalidatePath(`/customers/${customerID}/edit`);
+
+    redirect(`/customers/${customerID}/edit`);
+  }
+
+  async function deleteExpenseItem(formData: FormData) {
+    "use server";
+
+    const expenseID = Number(formData.get("ExpenseID"));
+
+    if (!Number.isInteger(expenseID)) {
+      throw new Error("Invalid expense item.");
+    }
+
+    const result = await prisma.expenseItem.deleteMany({
+      where: {
+        ID: expenseID,
+        CustomerID: customerID,
+      },
+    });
+
+    if (result.count === 0) {
+      throw new Error("Expense item was not found.");
+    }
+
+    revalidatePath("/");
+    revalidatePath(`/customers/${customerID}`);
+    revalidatePath(`/customers/${customerID}/edit`);
+
+    redirect(`/customers/${customerID}/edit`);
   }
 
   async function updateDocumentStatus(
@@ -502,6 +714,269 @@ export default async function EditCustomerPage({
             </Link>
           </div>
         </form>
+
+        <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Income sources
+          </h2>
+
+          <p className="mt-2 text-sm text-gray-600">
+            Add, edit or remove monthly household income.
+          </p>
+
+          {customer.IncomeSources.length === 0 ? (
+            <p className="mt-5 text-sm text-gray-600">
+              No income sources have been added.
+            </p>
+          ) : (
+            <div className="mt-5 space-y-4">
+              {customer.IncomeSources.map((income) => (
+                <form
+                  key={income.ID}
+                  action={updateIncomeSource}
+                  className="grid gap-4 rounded-xl border border-gray-200 p-4 md:grid-cols-[1fr_180px_auto]"
+                >
+                  <input
+                    type="hidden"
+                    name="IncomeID"
+                    value={income.ID}
+                  />
+
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Income label
+                    </span>
+
+                    <input
+                      name="Label"
+                      type="text"
+                      required
+                      defaultValue={income.Label}
+                      className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Monthly income (€)
+                    </span>
+
+                    <input
+                      name="MonthlyIncome"
+                      type="number"
+                      min="0"
+                      step="1"
+                      required
+                      defaultValue={income.MonthlyIncome}
+                      className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+
+                  <div className="flex items-end gap-2">
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+                    >
+                      Save
+                    </button>
+
+                    <button
+                      type="submit"
+                      formAction={deleteIncomeSource}
+                      formNoValidate
+                      className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </form>
+              ))}
+            </div>
+          )}
+
+          <form
+            action={addIncomeSource}
+            className="mt-6 grid gap-4 rounded-xl bg-gray-50 p-4 md:grid-cols-[1fr_180px_auto]"
+          >
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">
+                New income label
+              </span>
+
+              <input
+                name="Label"
+                type="text"
+                required
+                placeholder="For example: Salary"
+                className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">
+                Monthly income (€)
+              </span>
+
+              <input
+                name="MonthlyIncome"
+                type="number"
+                min="0"
+                step="1"
+                required
+                className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+              />
+            </label>
+
+            <div className="flex items-end">
+              <button
+                type="submit"
+                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+              >
+                Add income
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Expense items
+          </h2>
+
+          <p className="mt-2 text-sm text-gray-600">
+            Add, edit or remove recurring monthly expenses.
+          </p>
+
+          {customer.ExpenseItems.length === 0 ? (
+            <p className="mt-5 text-sm text-gray-600">
+              No expense items have been added.
+            </p>
+          ) : (
+            <div className="mt-5 space-y-4">
+              {customer.ExpenseItems.map((expense) => (
+                <form
+                  key={expense.ID}
+                  action={updateExpenseItem}
+                  className="grid gap-4 rounded-xl border border-gray-200 p-4 lg:grid-cols-[1fr_180px_150px_auto]"
+                >
+                  <input
+                    type="hidden"
+                    name="ExpenseID"
+                    value={expense.ID}
+                  />
+
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Expense label
+                    </span>
+
+                    <input
+                      name="Label"
+                      type="text"
+                      required
+                      defaultValue={expense.Label}
+                      className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Monthly expense (€)
+                    </span>
+
+                    <input
+                      name="MonthlyExpend"
+                      type="number"
+                      min="0"
+                      step="1"
+                      required
+                      defaultValue={expense.MonthlyExpend}
+                      className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+
+                  <label className="flex items-end gap-2 pb-2 text-sm text-gray-700">
+                    <input
+                      name="IsLoanPayment"
+                      type="checkbox"
+                      defaultChecked={expense.IsLoanPayment}
+                    />
+                    Loan payment
+                  </label>
+
+                  <div className="flex items-end gap-2">
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+                    >
+                      Save
+                    </button>
+
+                    <button
+                      type="submit"
+                      formAction={deleteExpenseItem}
+                      formNoValidate
+                      className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </form>
+              ))}
+            </div>
+          )}
+
+          <form
+            action={addExpenseItem}
+            className="mt-6 grid gap-4 rounded-xl bg-gray-50 p-4 lg:grid-cols-[1fr_180px_150px_auto]"
+          >
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">
+                New expense label
+              </span>
+
+              <input
+                name="Label"
+                type="text"
+                required
+                placeholder="For example: Rent"
+                className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">
+                Monthly expense (€)
+              </span>
+
+              <input
+                name="MonthlyExpend"
+                type="number"
+                min="0"
+                step="1"
+                required
+                className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+              />
+            </label>
+
+            <label className="flex items-end gap-2 pb-2 text-sm text-gray-700">
+              <input
+                name="IsLoanPayment"
+                type="checkbox"
+              />
+              Loan payment
+            </label>
+
+            <div className="flex items-end">
+              <button
+                type="submit"
+                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+              >
+                Add expense
+              </button>
+            </div>
+          </form>
+        </section>
 
         <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900">
